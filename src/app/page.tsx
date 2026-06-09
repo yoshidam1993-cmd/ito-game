@@ -19,14 +19,14 @@ export default function HomePage() {
       const inviteCode = generateInviteCode()
       const { data: room, error: roomErr } = await supabase
         .from('rooms')
-        .insert([{ invite_code: inviteCode, phase: 'waiting' as const }])
+        .insert({ invite_code: inviteCode, phase: 'waiting' })
         .select()
         .single()
       if (roomErr) throw roomErr
 
       const { data: player, error: playerErr } = await supabase
         .from('players')
-        .insert([{ room_id: room.id, name: name.trim() }])
+        .insert({ room_id: room.id, name: name.trim() })
         .select()
         .single()
       if (playerErr) throw playerErr
@@ -34,9 +34,8 @@ export default function HomePage() {
       storePlayerId(player.id)
       storePlayerName(player.name)
       router.push(`/room/${inviteCode}`)
-    } catch (e) {
+    } catch {
       setError('作成に失敗しました')
-      console.error(e)
     } finally {
       setLoading(false)
     }
@@ -47,26 +46,26 @@ export default function HomePage() {
     if (!code.trim()) { setError('コードを入力してください'); return }
     setLoading(true); setError('')
     try {
+      const upperCode = code.trim().toUpperCase()
       const { data: room, error: roomErr } = await supabase
         .from('rooms')
         .select()
-        .eq('invite_code', code.trim().toUpperCase())
+        .eq('invite_code', upperCode)
         .single()
       if (roomErr || !room) { setError('部屋が見つかりません'); setLoading(false); return }
 
       const { data: player, error: playerErr } = await supabase
         .from('players')
-        .insert([{ room_id: room.id, name: name.trim() }])
+        .insert({ room_id: room.id, name: name.trim() })
         .select()
         .single()
       if (playerErr) throw playerErr
 
       storePlayerId(player.id)
       storePlayerName(player.name)
-      router.push(`/room/${code.trim().toUpperCase()}`)
-    } catch (e) {
+      router.push(`/room/${upperCode}`)
+    } catch {
       setError('参加に失敗しました')
-      console.error(e)
     } finally {
       setLoading(false)
     }
@@ -99,7 +98,6 @@ export default function HomePage() {
 
         {mode === 'create' && (
           <div className="card space-y-3">
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>あなたの名前</p>
             <input
               className="input"
               placeholder="あなたの名前"
