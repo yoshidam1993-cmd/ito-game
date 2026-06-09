@@ -23,14 +23,12 @@ export default function HomePage() {
         .select()
         .single()
       if (roomErr) throw roomErr
-
       const { data: player, error: playerErr } = await supabase
         .from('players')
         .insert({ room_id: room.id, name: name.trim() })
         .select()
         .single()
       if (playerErr) throw playerErr
-
       storePlayerId(player.id)
       storePlayerName(player.name)
       router.push(`/room/${inviteCode}`)
@@ -53,14 +51,12 @@ export default function HomePage() {
         .eq('invite_code', upperCode)
         .single()
       if (roomErr || !room) { setError('部屋が見つかりません'); setLoading(false); return }
-
       const { data: player, error: playerErr } = await supabase
         .from('players')
         .insert({ room_id: room.id, name: name.trim() })
         .select()
         .single()
       if (playerErr) throw playerErr
-
       storePlayerId(player.id)
       storePlayerName(player.name)
       router.push(`/room/${upperCode}`)
