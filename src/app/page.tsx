@@ -1,113 +1,117 @@
 'use client'
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { generateInviteCode, storePlayerId, storePlayerName } from '@/lib/utils'
 
-function generateCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
-}
-
-export default function Home() {
+export default function HomePage() {
   const router = useRouter()
   const [name, setName] = useState('')
-  const [joinCode, setJoinCode] = useState('')
+  const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   async function handleCreate() {
     if (!name.trim()) { setError('名前を入力してください'); return }
-    setLoading(true)
-    setError('')
-
-    const playerId = crypto.randomUUID()
-    const inviteCode = generateCode()
-
-    const { data: room, error: roomError } = await supabase
-      .from('rooms')
-      .insert({ invite_code: inviteCode, phase: 'waiting' })
-      .select()
-      .single()
-
-    if (roomError || !room) {
+    setLoading(true); setError('')
+    try {
+      const inviteCode = generateInviteCode()
+      const { data: room, error: roomErr } = await supabase
+        .from('rooms')
+        .insert({ invite_code: inviteCode, phase: 'waiting' })
+        .select()
+        .single()
+      if (roomErr) throw roomErr
+      const { data: player, error: playerErr } = await supabase
+        .from('players')
+        .insert({ room_id: room.id, name: name.trim() })
+        .select()
+        .single()
+      if (playerErr) throw playerErr
+      storePlayerId(player.id)
+      storePlayerName(player.name)
+      router.push(`/room/${inviteCode}`)
+    } catch (e) {
+      console.error(e)
       setError('作成に失敗しました')
+    } finally {
       setLoading(false)
-      return
     }
-
-    await supabase.from('players').insert({
-      id: playerId,
-      room_id: room.id,
-      name: name.trim(),
-    })
-
-    await supabase.from('rooms').update({ host_player_id: playerId }).eq('id', room.id)
-
-    localStorage.setItem('playerId', playerId)
-    router.push(`/room/${room.invite_code}`)
   }
 
   async function handleJoin() {
     if (!name.trim()) { setError('名前を入力してください'); return }
-    if (!joinCode.trim()) { setError('招待コードを入力してください'); return }
-    setLoading(true)
-    setError('')
-
-    const { data: room } = await supabase
-      .from('rooms')
-      .select()
-      .eq('invite_code', joinCode.toUpperCase())
-      .single()
-
-    if (!room) {
-      setError('部屋が見つかりません')
+    if (!code.trim()) { setError('コードを入力してください'); return }
+    setLoading(true); setError('')
+    try {
+      const upperCode = code.trim().toUpperCase()
+      const { data: room, error: roomErr } = await supabase
+        .from('rooms')
+        .select()
+        .eq('invite_code', upperCode)
+        .single()
+      if (roomErr || !room) { setError('部屋が見つかりません'); setLoading(false); return }
+      const { data: player, error: playerErr } = await supabase
+        .from('players')
+        .insert({ room_id: room.id, name: name.trim() })
+        .select()
+        .single()
+      if (playerErr) throw playerErr
+      storePlayerId(player.id)
+      storePlayerName(player.name)
+      router.push(`/room/${upperCode}`)
+    } catch (e) {
+      console.error(e)
+      setError('参加に失敗しました')
+    } finally {
       setLoading(false)
-      return
     }
-
-    const playerId = crypto.randomUUID()
-    await supabase.from('players').insert({
-      id: playerId,
-      room_id: room.id,
-      name: name.trim(),
-    })
-
-    localStorage.setItem('playerId', playerId)
-    router.push(`/room/${room.invite_code}`)
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-1">
-          <h1 className="text-4xl font-black" style={{ color: 'var(--accent)' }}>ito</h1>
+        <div className="text-center space-y-2">
+          <h1 className="text-5xl font-black tracking-tight" style={{ color: 'var(--accent)' }}>ito</h1>
           <p className="text-sm" style={{ color: 'var(--muted)' }}>Discord通話しながら遊ぼう</p>
         </div>
 
         <div className="card space-y-3">
+          <p className="text-center font-bold">部屋を作る</p>
           <input
             className="input"
             placeholder="あなたの名前"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          {error && <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>}
           <button className="btn-primary" onClick={handleCreate} disabled={loading}>
-            {loading ? '処理中...' : '部屋を作る'}
+            {loading ? '作成中...' : '部屋を作る'}
           </button>
         </div>
 
         <div className="card space-y-3">
+          <p className="text-center font-bold">部屋に入る</p>
           <input
             className="input"
-            placeholder="招待コード"
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
+            placeholder="あなたの名前"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
-          <button className="btn-secondary" onClick={handleJoin} disabled={loading}>
-            {loading ? '処理中...' : '部屋に入る'}
+          <input
+            className="input"
+            placeholder="招待コード（6文字）"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            maxLength={6}
+          />
+          <button className="btn-primary" onClick={handleJoin} disabled={loading}>
+            {loading ? '参加中...' : '部屋に入る'}
           </button>
         </div>
+
+        {error && <p style={{ color: 'var(--danger)', fontSize: 14, textAlign: 'center' }}>{error}</p>}
+
+        <p className="text-center text-xs" style={{ color: 'var(--muted)' }}>アカウント登録不要・無料</p>
       </div>
     </main>
   )
