@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
-  getStoredPlayerId,
   assignNumbers,
   allSpoke,
   judgeResult,
@@ -18,7 +17,9 @@ import ResultView from '@/components/ResultView'
 export default function RoomPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const inviteCode = (params.code as string).toUpperCase()
+  const pidFromUrl = searchParams.get('pid')
 
   const [room, setRoom] = useState<Room | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
@@ -26,9 +27,8 @@ export default function RoomPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // 初回ロード
   const loadRoom = useCallback(async () => {
-    const playerId = getStoredPlayerId()
+    const playerId = pidFromUrl
     if (!playerId) { router.push('/'); return }
     setMyId(playerId)
 
@@ -42,108 +42,71 @@ export default function RoomPage() {
     const { data: playersData } = await supabase
       .from('players')
       .select()
-      .eq('room_id', roomData.id)
+      .eq('room_id', (roomData as any).id)
       .order('created_at')
-    
-    setRoom(roomData)
-    setPlayers(playersData ?? [])
+
+    setRoom(roomData as any)
+    setPlayers((playersData ?? []) as any)
     setLoading(false)
-  }, [inviteCode, router])
+  }, [inviteCode, router, pidFromUrl])
 
   useEffect(() => {
     loadRoom()
   }, [loadRoom])
 
-  // Realtime購読
   useEffect(() => {
     if (!room) return
-
+    const r = room as any
     const channel = supabase
-      .channel(`room-${room.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${room.id}` },
-        (payload) => {
-          setRoom(payload.new as Room)
-        }
+      .channel(`room-${r.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${r.id}` },
+        (payload) => { setRoom(payload.new as any) }
       )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${room.id}` },
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${r.id}` },
         async () => {
-          const { data } = await supabase
-            .from('players')
-            .select()
-            .eq('room_id', room.id)
-            .order('created_at')
-          setPlayers(data ?? [])
+          const { data } = await supabase.from('players').select().eq('room_id', r.id).order('created_at')
+          setPlayers((data ?? []) as any)
         }
       )
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
-  }, [room?.id])
+  }, [(room as any)?.id])
 
-  // ゲーム開始（ホストのみ実行）
   async function handleStartGame() {
     if (!room) return
+    const r = room as any
     const numbers = assignNumbers(players.length)
     const topic = getRandomTopic()
-
-    const updates = players.map((p, i) =>
+    const updates = players.map((p: any, i: number) =>
       supabase.from('players').update({ number: numbers[i] }).eq('id', p.id)
     )
     await Promise.all(updates)
-
-    await supabase
-      .from('rooms')
-      .update({ phase: 'playing', topic })
-      .eq('id', room.id)
+    await supabase.from('rooms').update({ phase: 'playing', topic }).eq('id', r.id)
   }
 
-  // お題チェンジ（ホストのみ）
   async function handleChangeTopic() {
     if (!room) return
     const newTopic = getRandomTopic()
-    await supabase
-      .from('rooms')
-      .update({ topic: newTopic })
-      .eq('id', room.id)
+    await supabase.from('rooms').update({ topic: newTopic }).eq('id', (room as any).id)
   }
 
-  // 発言ボタンを押したとき
   async function handleSpeak() {
     if (!room || !myId) return
-    const spoke = players.filter((p) => p.speak_order !== null)
+    const spoke = players.filter((p: any) => p.speak_order !== null)
     const nextOrder = spoke.length + 1
-
-    await supabase
-      .from('players')
-      .update({ speak_order: nextOrder })
-      .eq('id', myId)
-
-    const updatedPlayers = players.map((p) =>
+    await supabase.from('players').update({ speak_order: nextOrder }).eq('id', myId)
+    const updatedPlayers = players.map((p: any) =>
       p.id === myId ? { ...p, speak_order: nextOrder } : p
     )
-    if (allSpoke(updatedPlayers)) {
-      await supabase
-        .from('rooms')
-        .update({ phase: 'revealing' })
-        .eq('id', room.id)
+    if (allSpoke(updatedPlayers as any)) {
+      await supabase.from('rooms').update({ phase: 'revealing' }).eq('id', (room as any).id)
     }
   }
 
-  // もう一度遊ぶ（ホストのみ）
   async function handlePlayAgain() {
     if (!room) return
-    await supabase
-      .from('players')
-      .update({ number: null, speak_order: null, is_ready: false })
-      .eq('room_id', room.id)
-    await supabase
-      .from('rooms')
-      .update({ phase: 'waiting', topic: null })
-      .eq('id', room.id)
+    await supabase.from('players').update({ number: null, speak_order: null, is_ready: false }).eq('room_id', (room as any).id)
+    await supabase.from('rooms').update({ phase: 'waiting', topic: null }).eq('id', (room as any).id)
   }
 
   if (loading) {
@@ -167,41 +130,24 @@ export default function RoomPage() {
     )
   }
 
-  const myPlayer = players.find((p) => p.id === myId) ?? null
-  const isHost = room.host_player_id === myId
-  const { success, orderedPlayers } = room.phase === 'revealing'
-    ? judgeResult(players)
+  const r = room as any
+  const myPlayer = players.find((p: any) => p.id === myId) ?? null
+  const isHost = r.host_player_id === myId
+  const { success, orderedPlayers } = r.phase === 'revealing'
+    ? judgeResult(players as any)
     : { success: false, orderedPlayers: [] }
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-lg">
-        {room.phase === 'waiting' && (
-          <LobbyView
-            room={room}
-            players={players}
-            isHost={isHost}
-            onStartGame={handleStartGame}
-          />
+        {r.phase === 'waiting' && (
+          <LobbyView room={room} players={players} isHost={isHost} onStartGame={handleStartGame} />
         )}
-        {room.phase === 'playing' && (
-          <GameView
-            room={room}
-            players={players}
-            myPlayer={myPlayer}
-            isHost={isHost}
-            onSpeak={handleSpeak}
-            onChangeTopic={handleChangeTopic}
-          />
+        {r.phase === 'playing' && (
+          <GameView room={room} players={players} myPlayer={myPlayer} isHost={isHost} onSpeak={handleSpeak} onChangeTopic={handleChangeTopic} />
         )}
-        {room.phase === 'revealing' && (
-          <ResultView
-            success={success}
-            orderedPlayers={orderedPlayers}
-            topic={room.topic ?? ''}
-            isHost={isHost}
-            onPlayAgain={handlePlayAgain}
-          />
+        {r.phase === 'revealing' && (
+          <ResultView success={success} orderedPlayers={orderedPlayers} topic={r.topic ?? ''} isHost={isHost} onPlayAgain={handlePlayAgain} />
         )}
       </div>
     </main>
