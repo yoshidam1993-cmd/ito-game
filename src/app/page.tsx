@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { generateInviteCode, storePlayerId, storePlayerName } from '@/lib/utils'
+import { generateInviteCode } from '@/lib/utils'
 
 export default function HomePage() {
   const router = useRouter()
@@ -21,19 +21,24 @@ export default function HomePage() {
         .insert({ invite_code: inviteCode, phase: 'waiting' })
         .select()
         .single()
-      if (roomErr) throw roomErr
+      if (roomErr || !room) throw new Error('部屋作成失敗')
+
       const { data: player, error: playerErr } = await supabase
         .from('players')
-        .insert({ room_id: room.id, name: name.trim() })
+        .insert({ room_id: (room as any).id, name: name.trim() })
         .select()
         .single()
-      if (playerErr) throw playerErr
-      storePlayerId(player.id)
-      storePlayerName(player.name)
-      router.push(`/room/${inviteCode}`)
+      if (playerErr || !player) throw new Error('プレイヤー作成失敗')
+
+      const playerId = (player as any).id
+      const playerName = (player as any).name
+      window.localStorage.setItem('ito_player_id', playerId)
+      window.localStorage.setItem('ito_player_name', playerName)
+
+      window.location.href = `/room/${inviteCode}`
     } catch (e) {
       console.error(e)
-      setError('作成に失敗しました')
+      setError('作成に失敗しました: ' + String(e))
     } finally {
       setLoading(false)
     }
@@ -51,18 +56,23 @@ export default function HomePage() {
         .eq('invite_code', upperCode)
         .single()
       if (roomErr || !room) { setError('部屋が見つかりません'); setLoading(false); return }
+
       const { data: player, error: playerErr } = await supabase
         .from('players')
-        .insert({ room_id: room.id, name: name.trim() })
+        .insert({ room_id: (room as any).id, name: name.trim() })
         .select()
         .single()
-      if (playerErr) throw playerErr
-      storePlayerId(player.id)
-      storePlayerName(player.name)
-      router.push(`/room/${upperCode}`)
+      if (playerErr || !player) throw new Error('プレイヤー作成失敗')
+
+      const playerId = (player as any).id
+      const playerName = (player as any).name
+      window.localStorage.setItem('ito_player_id', playerId)
+      window.localStorage.setItem('ito_player_name', playerName)
+
+      window.location.href = `/room/${upperCode}`
     } catch (e) {
       console.error(e)
-      setError('参加に失敗しました')
+      setError('参加に失敗しました: ' + String(e))
     } finally {
       setLoading(false)
     }
