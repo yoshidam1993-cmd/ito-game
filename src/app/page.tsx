@@ -68,6 +68,17 @@ export default function HomePage() {
     }
   }
 
+  const inputStyle = {
+    background: '#ffffff',
+    border: '1px solid #2a2a3a',
+    color: '#111111',
+    fontSize: '1rem',
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    outline: 'none',
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
@@ -78,7 +89,12 @@ export default function HomePage() {
 
         <div className="card space-y-3">
           <p className="text-center font-bold">部屋を作る</p>
-          <input className="input-field" placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            style={inputStyle}
+            placeholder="あなたの名前"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <button className="btn-primary" onClick={handleCreate} disabled={loading}>
             {loading ? '作成中...' : '部屋を作る'}
           </button>
@@ -86,8 +102,19 @@ export default function HomePage() {
 
         <div className="card space-y-3">
           <p className="text-center font-bold">部屋に入る</p>
-          <input className="input-field" placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="input-field" placeholder="招待コード（6文字）" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} />
+          <input
+            style={inputStyle}
+            placeholder="あなたの名前"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            style={inputStyle}
+            placeholder="招待コード（6文字）"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            maxLength={6}
+          />
           <button className="btn-primary" onClick={handleJoin} disabled={loading}>
             {loading ? '参加中...' : '部屋に入る'}
           </button>

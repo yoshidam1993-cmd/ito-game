@@ -38,26 +38,15 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
 
   return (
     <div className="space-y-6">
-      {/* ヘッダー */}
       <div className="text-center space-y-1">
-        <h1 className="text-4xl font-black" style={{ color: 'var(--accent)' }}>
-          ito
-        </h1>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Discordで通話しながら遊ぼう
-        </p>
+        <h1 className="text-4xl font-black" style={{ color: 'var(--accent)' }}>ito</h1>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>Discordで通話しながら遊ぼう</p>
       </div>
 
-      {/* 招待コード */}
       <div className="card text-center space-y-3">
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          招待コードをDiscordで共有
-        </p>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>招待コードをDiscordで共有</p>
         <div className="flex items-center justify-center gap-3">
-          <span
-            className="text-4xl font-black tracking-widest"
-            style={{ color: 'var(--accent)', letterSpacing: '0.2em' }}
-          >
+          <span className="text-4xl font-black tracking-widest" style={{ color: 'var(--accent)', letterSpacing: '0.2em' }}>
             {room.invite_code}
           </span>
           <button
@@ -72,54 +61,36 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
           </button>
         </div>
 
-        {/* URLコピーボタン */}
-        <div className="pt-1">
-          <button
-            onClick={copyUrl}
-            className="text-sm px-4 py-2 rounded-lg transition-colors w-full"
-            style={{
-              background: copyingUrl ? 'var(--success)' : 'var(--bg)',
-              color: copyingUrl ? '#fff' : 'var(--muted)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            {copyingUrl ? '✓ URLをコピーしました！' : '🔗 招待URLをコピーする'}
-          </button>
-        </div>
+        <button
+          onClick={copyUrl}
+          className="text-sm px-3 py-1 rounded-lg transition-colors"
+          style={{
+            background: copyingUrl ? 'var(--success)' : 'var(--border)',
+            color: copyingUrl ? '#fff' : 'var(--text)',
+          }}
+        >
+          {copyingUrl ? '✓ URLコピー完了！' : '🔗 招待URLをコピー'}
+        </button>
       </div>
 
-      {/* 参加者リスト */}
       <div className="card space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-bold">参加者</h2>
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>
-            {players.length}人
-          </span>
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>{players.length}人</span>
         </div>
         <ul className="space-y-2">
           {players.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-center gap-2 py-2 px-3 rounded-lg"
-              style={{ background: 'var(--bg)' }}
-            >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: 'var(--success)' }}
-              />
+            <li key={p.id} className="flex items-center gap-2 py-2 px-3 rounded-lg" style={{ background: 'var(--bg)' }}>
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--success)' }} />
               <span className="font-medium">{p.name}</span>
               {p.id === room.host_player_id && (
-                <span
-                  className="ml-auto text-xs px-2 py-0.5 rounded"
-                  style={{ background: 'var(--accent)', color: '#fff' }}
-                >
+                <span className="ml-auto text-xs px-2 py-0.5 rounded" style={{ background: 'var(--accent)', color: '#fff' }}>
                   ホスト
                 </span>
               )}
             </li>
           ))}
         </ul>
-
         {players.length < 2 && (
           <p className="text-sm text-center" style={{ color: 'var(--muted)' }}>
             あと{2 - players.length}人以上で遊べます
@@ -127,20 +98,12 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
         )}
       </div>
 
-      {/* ゲーム開始ボタン（ホストのみ） */}
       {isHost ? (
-        <button
-          className="btn-primary"
-          onClick={handleStart}
-          disabled={!canStart || starting}
-        >
+        <button className="btn-primary" onClick={handleStart} disabled={!canStart || starting}>
           {starting ? '開始中...' : `ゲームを始める（${players.length}人）`}
         </button>
       ) : (
-        <div
-          className="text-center text-sm py-3"
-          style={{ color: 'var(--muted)' }}
-        >
+        <div className="text-center text-sm py-3" style={{ color: 'var(--muted)' }}>
           ホストがゲームを開始するまで待ってください
         </div>
       )}
