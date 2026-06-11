@@ -1,121 +1,58 @@
 'use client'
-
-import { useState } from 'react'
-import { QRCodeSVG } from 'qrcode.react'
 import type { Room, Player } from '@/types/database'
+import { QRCodeSVG } from 'qrcode.react'
 
-type Props = {
-  room: Room
-  players: Player[]
+interface Props {
+  room: any
+  players: any[]
   isHost: boolean
-  onStartGame: () => Promise<void>
+  onStartGame: () => void
 }
 
 export default function LobbyView({ room, players, isHost, onStartGame }: Props) {
-  const [copying, setCopying] = useState(false)
-  const [copyingUrl, setCopyingUrl] = useState(false)
-  const [starting, setStarting] = useState(false)
-
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
-
-  async function copyCode() {
-    await navigator.clipboard.writeText(room.invite_code)
-    setCopying(true)
-    setTimeout(() => setCopying(false), 1500)
-  }
+  const inviteCode = room.invite_code
+  const inviteUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/?code=${inviteCode}`
+    : `https://ito-game-nine.vercel.app/?code=${inviteCode}`
 
   async function copyUrl() {
-    await navigator.clipboard.writeText(currentUrl)
-    setCopyingUrl(true)
-    setTimeout(() => setCopyingUrl(false), 1500)
+    await navigator.clipboard.writeText(inviteUrl)
+    alert('コピーしました！')
   }
-
-  async function handleStart() {
-    setStarting(true)
-    await onStartGame()
-    setStarting(false)
-  }
-
-  const canStart = players.length >= 2
 
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-1">
-        <h1 className="text-4xl font-black" style={{ color: 'var(--accent)' }}>ito</h1>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>Discordで通話しながら遊ぼう</p>
-      </div>
-
       <div className="card text-center space-y-3">
         <p className="text-sm" style={{ color: 'var(--muted)' }}>招待コードをDiscordで共有</p>
-        <div className="flex items-center justify-center gap-3">
-          <span className="text-4xl font-black tracking-widest" style={{ color: 'var(--accent)', letterSpacing: '0.2em' }}>
-            {room.invite_code}
-          </span>
-          <button
-            onClick={copyCode}
-            className="text-sm px-3 py-1 rounded-lg transition-colors"
-            style={{
-              background: copying ? 'var(--success)' : 'var(--border)',
-              color: copying ? '#fff' : 'var(--text)',
-            }}
-          >
-            {copying ? 'コピー完了！' : 'コピー'}
-          </button>
-        </div>
-
-        <button
-          onClick={copyUrl}
-          className="text-sm px-3 py-1 rounded-lg transition-colors w-full"
-          style={{
-            background: copyingUrl ? 'var(--success)' : 'var(--border)',
-            color: copyingUrl ? '#fff' : 'var(--text)',
-          }}
-        >
-          {copyingUrl ? '✓ URLコピー完了！' : '🔗 招待URLをコピー'}
-        </button>
-
-        {/* QRコード */}
-        <div className="flex flex-col items-center gap-2 pt-2">
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>スマホで読み取って参加</p>
-          <div style={{ background: '#fff', padding: 8, borderRadius: 8 }}>
-            <QRCodeSVG value={currentUrl} size={120} />
-          </div>
+        <p className="text-4xl font-black tracking-widest" style={{ color: 'var(--accent)' }}>{inviteCode}</p>
+        <button className="btn-secondary" onClick={copyUrl}>🔗 招待URLをコピー</button>
+        <div className="flex justify-center pt-2">
+          <QRCodeSVG value={inviteUrl} size={120} />
         </div>
       </div>
 
       <div className="card space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold">参加者</h2>
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>{players.length}人</span>
+        <div className="flex justify-between items-center">
+          <p className="font-bold">参加者</p>
+          <p style={{ color: 'var(--muted)', fontSize: 14 }}>{players.length}人</p>
         </div>
-        <ul className="space-y-2">
-          {players.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 py-2 px-3 rounded-lg" style={{ background: 'var(--bg)' }}>
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--success)' }} />
-              <span className="font-medium">{p.name}</span>
-              {p.id === room.host_player_id && (
-                <span className="ml-auto text-xs px-2 py-0.5 rounded" style={{ background: 'var(--accent)', color: '#fff' }}>
-                  ホスト
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+        {players.map((p: any) => (
+          <div key={p.id} className="flex items-center gap-2">
+            <span style={{ color: 'var(--accent)' }}>●</span>
+            <span>{p.name}</span>
+          </div>
+        ))}
         {players.length < 2 && (
-          <p className="text-sm text-center" style={{ color: 'var(--muted)' }}>
-            あと{2 - players.length}人以上で遊べます
-          </p>
+          <p style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center' }}>あと{2 - players.length}人以上で遊べます</p>
         )}
       </div>
 
       {isHost ? (
-        <button className="btn-primary" onClick={handleStart} disabled={!canStart || starting}>
-          {starting ? '開始中...' : `ゲームを始める（${players.length}人）`}
+        <button className="btn-primary" onClick={onStartGame} disabled={players.length < 2}>
+          ゲームを開始する
         </button>
       ) : (
-        <div className="text-center text-sm py-3" style={{ color: 'var(--muted)' }}>
-          ホストがゲームを開始するまで待ってください
-        </div>
+        <p style={{ color: 'var(--muted)', fontSize: 14, textAlign: 'center' }}>ホストがゲームを開始するまで待ってください</p>
       )}
     </div>
   )

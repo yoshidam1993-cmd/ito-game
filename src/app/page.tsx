@@ -1,13 +1,21 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { generateInviteCode } from '@/lib/utils'
 
-export default function HomePage() {
+function HomeContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const c = searchParams.get('code')
+    if (c) setCode(c.toUpperCase())
+  }, [searchParams])
 
   async function handleCreate() {
     if (!name.trim()) { setError('名前を入力してください'); return }
@@ -28,15 +36,9 @@ export default function HomePage() {
         .single()
       if (playerErr || !player) throw new Error('プレイヤー作成失敗')
 
-      const pid = (player as any).id
+      await supabase.from('rooms').update({ host_player_id: (player as any).id }).eq('id', (room as any).id)
 
-      // host_player_idをセット
-      await supabase
-        .from('rooms')
-        .update({ host_player_id: pid })
-        .eq('id', (room as any).id)
-
-      window.location.href = `/room/${inviteCode}?pid=${pid}`
+      window.location.href = `/room/${inviteCode}?pid=${(player as any).id}`
     } catch (e) {
       console.error(e)
       setError('作成に失敗しました: ' + String(e))
@@ -52,10 +54,7 @@ export default function HomePage() {
     try {
       const upperCode = code.trim().toUpperCase()
       const { data: room, error: roomErr } = await supabase
-        .from('rooms')
-        .select()
-        .eq('invite_code', upperCode)
-        .single()
+        .from('rooms').select().eq('invite_code', upperCode).single()
       if (roomErr || !room) { setError('部屋が見つかりません'); setLoading(false); return }
 
       const { data: player, error: playerErr } = await supabase
@@ -65,8 +64,7 @@ export default function HomePage() {
         .single()
       if (playerErr || !player) throw new Error('プレイヤー作成失敗')
 
-      const pid = (player as any).id
-      window.location.href = `/room/${upperCode}?pid=${pid}`
+      window.location.href = `/room/${upperCode}?pid=${(player as any).id}`
     } catch (e) {
       console.error(e)
       setError('参加に失敗しました: ' + String(e))
@@ -76,14 +74,13 @@ export default function HomePage() {
   }
 
   const inputStyle = {
-    background: '#ffffff',
-    border: '1px solid #2a2a3a',
-    color: '#111111',
-    fontSize: '1rem',
+    background: '#1e1e2e',
+    color: '#ffffff',
+    border: '1px solid #444',
+    borderRadius: 8,
+    padding: '10px 14px',
     width: '100%',
-    padding: '12px 16px',
-    borderRadius: '12px',
-    outline: 'none',
+    fontSize: 16,
   }
 
   return (
@@ -115,5 +112,13 @@ export default function HomePage() {
         <p className="text-center text-xs" style={{ color: 'var(--muted)' }}>アカウント登録不要・無料</p>
       </div>
     </main>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   )
 }
