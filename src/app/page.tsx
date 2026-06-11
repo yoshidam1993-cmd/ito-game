@@ -78,7 +78,7 @@ export default function HomePage() {
 
         <div className="card space-y-3">
           <p className="text-center font-bold">部屋を作る</p>
-          <input className="input" placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="input-field" placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
           <button className="btn-primary" onClick={handleCreate} disabled={loading}>
             {loading ? '作成中...' : '部屋を作る'}
           </button>
@@ -86,8 +86,8 @@ export default function HomePage() {
 
         <div className="card space-y-3">
           <p className="text-center font-bold">部屋に入る</p>
-          <input className="input" placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="input" placeholder="招待コード（6文字）" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} />
+          <input className="input-field" placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="input-field" placeholder="招待コード（6文字）" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} />
           <button className="btn-primary" onClick={handleJoin} disabled={loading}>
             {loading ? '参加中...' : '部屋に入る'}
           </button>

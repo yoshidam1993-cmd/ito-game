@@ -12,12 +12,20 @@ type Props = {
 
 export default function LobbyView({ room, players, isHost, onStartGame }: Props) {
   const [copying, setCopying] = useState(false)
+  const [copyingUrl, setCopyingUrl] = useState(false)
   const [starting, setStarting] = useState(false)
 
   async function copyCode() {
     await navigator.clipboard.writeText(room.invite_code)
     setCopying(true)
     setTimeout(() => setCopying(false), 1500)
+  }
+
+  async function copyUrl() {
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    await navigator.clipboard.writeText(url)
+    setCopyingUrl(true)
+    setTimeout(() => setCopyingUrl(false), 1500)
   }
 
   async function handleStart() {
@@ -63,12 +71,21 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
             {copying ? 'コピー完了！' : 'コピー'}
           </button>
         </div>
-        <p className="text-xs" style={{ color: 'var(--muted)' }}>
-          URLをコピーする場合は{' '}
-          <span style={{ color: 'var(--text)' }}>
-            {typeof window !== 'undefined' ? window.location.href : ''}
-          </span>
-        </p>
+
+        {/* URLコピーボタン */}
+        <div className="pt-1">
+          <button
+            onClick={copyUrl}
+            className="text-sm px-4 py-2 rounded-lg transition-colors w-full"
+            style={{
+              background: copyingUrl ? 'var(--success)' : 'var(--bg)',
+              color: copyingUrl ? '#fff' : 'var(--muted)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {copyingUrl ? '✓ URLをコピーしました！' : '🔗 招待URLをコピーする'}
+          </button>
+        </div>
       </div>
 
       {/* 参加者リスト */}
