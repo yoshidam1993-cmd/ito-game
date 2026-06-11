@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import type { Room, Player } from '@/types/database'
 
 type Props = {
@@ -15,6 +16,8 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
   const [copyingUrl, setCopyingUrl] = useState(false)
   const [starting, setStarting] = useState(false)
 
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
+
   async function copyCode() {
     await navigator.clipboard.writeText(room.invite_code)
     setCopying(true)
@@ -22,8 +25,7 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
   }
 
   async function copyUrl() {
-    const url = typeof window !== 'undefined' ? window.location.href : ''
-    await navigator.clipboard.writeText(url)
+    await navigator.clipboard.writeText(currentUrl)
     setCopyingUrl(true)
     setTimeout(() => setCopyingUrl(false), 1500)
   }
@@ -63,7 +65,7 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
 
         <button
           onClick={copyUrl}
-          className="text-sm px-3 py-1 rounded-lg transition-colors"
+          className="text-sm px-3 py-1 rounded-lg transition-colors w-full"
           style={{
             background: copyingUrl ? 'var(--success)' : 'var(--border)',
             color: copyingUrl ? '#fff' : 'var(--text)',
@@ -71,6 +73,14 @@ export default function LobbyView({ room, players, isHost, onStartGame }: Props)
         >
           {copyingUrl ? '✓ URLコピー完了！' : '🔗 招待URLをコピー'}
         </button>
+
+        {/* QRコード */}
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>スマホで読み取って参加</p>
+          <div style={{ background: '#fff', padding: 8, borderRadius: 8 }}>
+            <QRCodeSVG value={currentUrl} size={120} />
+          </div>
+        </div>
       </div>
 
       <div className="card space-y-3">

@@ -29,6 +29,13 @@ export default function HomePage() {
       if (playerErr || !player) throw new Error('プレイヤー作成失敗')
 
       const pid = (player as any).id
+
+      // host_player_idをセット
+      await supabase
+        .from('rooms')
+        .update({ host_player_id: pid })
+        .eq('id', (room as any).id)
+
       window.location.href = `/room/${inviteCode}?pid=${pid}`
     } catch (e) {
       console.error(e)
@@ -89,12 +96,7 @@ export default function HomePage() {
 
         <div className="card space-y-3">
           <p className="text-center font-bold">部屋を作る</p>
-          <input
-            style={inputStyle}
-            placeholder="あなたの名前"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <input style={inputStyle} placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
           <button className="btn-primary" onClick={handleCreate} disabled={loading}>
             {loading ? '作成中...' : '部屋を作る'}
           </button>
@@ -102,19 +104,8 @@ export default function HomePage() {
 
         <div className="card space-y-3">
           <p className="text-center font-bold">部屋に入る</p>
-          <input
-            style={inputStyle}
-            placeholder="あなたの名前"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            style={inputStyle}
-            placeholder="招待コード（6文字）"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            maxLength={6}
-          />
+          <input style={inputStyle} placeholder="あなたの名前" value={name} onChange={(e) => setName(e.target.value)} />
+          <input style={inputStyle} placeholder="招待コード（6文字）" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} />
           <button className="btn-primary" onClick={handleJoin} disabled={loading}>
             {loading ? '参加中...' : '部屋に入る'}
           </button>
